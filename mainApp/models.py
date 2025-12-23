@@ -3,6 +3,8 @@ from django.utils.safestring import mark_safe
 from django.utils import timezone  
 from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
+
+
 # Create your models here.
 class Cliente(models.Model):
     nombre = models.CharField(max_length=100)

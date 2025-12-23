@@ -1,34 +1,30 @@
 from django.shortcuts import render, redirect,get_object_or_404
 from .models import Cliente, Marca, Modelo, Estado, Orden_de_Trabajo,Perfil
-from .forms import ClienteForm, EstadoForm
+from .forms import ClienteForm
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login as auth_login
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User,Group
 from decimal import Decimal, InvalidOperation
 from django.db.models import Q
 from django.utils.dateparse import parse_date
 from django.utils import timezone
 from django.db.models.deletion import ProtectedError
-
+from django.contrib.auth import update_session_auth_hash
 
 
 @login_required
 def ver_tecnicos(request):
-    # 🔒 Solo administradores
     if not es_admin(request.user):
         messages.error(request, "Acceso denegado.")
         return redirect("inicio")
 
-    # 📋 Obtener todos los usuarios del grupo Técnico
     tecnicos = User.objects.filter(groups__name="Tecnico").order_by("username")
 
     return render(request, "crear_tecnico.html", {
         "tecnicos": tecnicos
     })
-
-#PARA USUARIOS 
 
 def es_admin(user):
     return user.groups.filter(name="Administrador").exists()
@@ -48,13 +44,10 @@ def panel_admin(request):
     return render(request, "admin_panel.html")
 
 
-from django.contrib.auth.models import User, Group
 
 
 CONTRASENA_TECNICO = "Tecnico123"  
 
-from django.contrib.auth.models import User, Group
-from django.contrib.auth.decorators import login_required
 
 @login_required
 def crear_tecnico(request):
@@ -81,7 +74,6 @@ def crear_tecnico(request):
         grupo_tecnico, _ = Group.objects.get_or_create(name="Tecnico")
         user.groups.add(grupo_tecnico)
 
-        # Crear perfil
         Perfil.objects.create(user=user, debe_cambiar_password=True)
 
         messages.success(
@@ -89,9 +81,8 @@ def crear_tecnico(request):
             f"Técnico creado. Contraseña inicial: {CONTRASENA_TECNICO}"
         )
 
-        return redirect("crear_tecnico")  # Redirige a la misma página
+        return redirect("crear_tecnico")  
 
-    # ✅ Aquí se cargan todos los técnicos
     grupo_tecnico = Group.objects.get(name="Tecnico")
     tecnicos = grupo_tecnico.user_set.all()
 
@@ -100,19 +91,12 @@ def crear_tecnico(request):
     })
 
 
-
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth import update_session_auth_hash
-from django.contrib import messages
-
 @login_required
 def cambiar_password(request):
 
-    # 🔒 Si NO es técnico, no entra aquí
     if not es_tecnico(request.user):
         return redirect("inicio")
 
-    # ✅ Si ya cambió la contraseña, no vuelve aquí
     if request.user.last_login is not None:
         return redirect("inicio")
 
@@ -131,7 +115,6 @@ def cambiar_password(request):
         request.user.set_password(password1)
         request.user.save()
 
-        # 🔑 Mantiene la sesión activa
         update_session_auth_hash(request, request.user)
 
         messages.success(request, "Contraseña actualizada correctamente.")
