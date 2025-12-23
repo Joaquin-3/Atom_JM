@@ -13,6 +13,21 @@ from django.utils import timezone
 from django.db.models.deletion import ProtectedError
 
 
+
+@login_required
+def ver_tecnicos(request):
+    # 🔒 Solo administradores
+    if not es_admin(request.user):
+        messages.error(request, "Acceso denegado.")
+        return redirect("inicio")
+
+    # 📋 Obtener todos los usuarios del grupo Técnico
+    tecnicos = User.objects.filter(groups__name="Tecnico").order_by("username")
+
+    return render(request, "crear_tecnico.html", {
+        "tecnicos": tecnicos
+    })
+
 #PARA USUARIOS 
 
 def es_admin(user):
@@ -37,6 +52,9 @@ from django.contrib.auth.models import User, Group
 
 
 CONTRASENA_TECNICO = "Tecnico123"  
+
+from django.contrib.auth.models import User, Group
+from django.contrib.auth.decorators import login_required
 
 @login_required
 def crear_tecnico(request):
@@ -63,20 +81,24 @@ def crear_tecnico(request):
         grupo_tecnico, _ = Group.objects.get_or_create(name="Tecnico")
         user.groups.add(grupo_tecnico)
 
-        # 🔥 CREAR PERFIL Y FORZAR CAMBIO DE PASSWORD
-        Perfil.objects.create(
-            user=user,
-            debe_cambiar_password=True
-        )
+        # Crear perfil
+        Perfil.objects.create(user=user, debe_cambiar_password=True)
 
         messages.success(
             request,
             f"Técnico creado. Contraseña inicial: {CONTRASENA_TECNICO}"
         )
 
-        return redirect("admin_panel")
+        return redirect("crear_tecnico")  # Redirige a la misma página
 
-    return render(request, "crear_tecnico.html")
+    # ✅ Aquí se cargan todos los técnicos
+    grupo_tecnico = Group.objects.get(name="Tecnico")
+    tecnicos = grupo_tecnico.user_set.all()
+
+    return render(request, "crear_tecnico.html", {
+        "tecnicos": tecnicos
+    })
+
 
 
 from django.contrib.auth.decorators import login_required

@@ -15,7 +15,6 @@ urlpatterns = [
     path('documentacion/', views.ordenes_historial, name='documentacion'),
     path('ordenes/crear/', views.crear_orden, name='crear_orden'),
     path('ordenes/editar/<int:pk>/', views.orden_editar, name='editar_ordenes'),
-    path("admin-panel/", views.panel_admin, name="admin_panel"),
     path("crear-tecnico/", views.crear_tecnico, name="crear_tecnico"),
     path("cambiar-password/", views.cambiar_password, name="cambiar_password"),
 

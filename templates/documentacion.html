@@ -44,6 +44,12 @@
                     <i class="bi bi-file-earmark-text me-2"></i> Documentación
                 </a>
             </li>
+            <li class="nav-item">
+                {% if request.user.groups.all.0.name == "Administrador" %}
+                    <a href="{% url 'crear_tecnico' %}" class="nav-link text-white rounded-1">
+                        <i class="bi bi-gear me-2"></i> Agregar Tecnicos</i></a>
+                {% endif %}
+            </li>
         </ul>
 
         <hr class="border-secondary my-3">
