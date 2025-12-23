@@ -450,7 +450,7 @@ def ordenes_historial(request):
 def crear_orden(request):
     if request.method == "POST":
         cliente_id = request.POST.get("cliente", "").strip()
-        marca_nombre = request.POST.get("marca", "").strip()
+        marca_id = request.POST.get("marca", "").strip()
         modelo_nombre = request.POST.get("modelo", "").strip()
         abono_raw = request.POST.get("abono", "").strip()
         total_raw = request.POST.get("total", "").strip()
@@ -461,44 +461,79 @@ def crear_orden(request):
             messages.error(request, "Debes completar Cliente y Modelo.")
             return redirect("ordenes_trabajo")
 
-        total = validar_monto(total_raw, "Total", request, obligatorio=True)
-        if total is None:
+        # Convertir total a Decimal
+        try:
+            total = Decimal(total_raw)
+            if total <= 0:
+                raise ValueError
+        except (InvalidOperation, ValueError):
+            messages.error(request, "El total ingresado no es válido.")
             return redirect("ordenes_trabajo")
 
-        abono = validar_monto(abono_raw, "Abono", request, obligatorio=False)
-        if abono is None:
+        # Convertir abono a Decimal (opcional)
+        abono = Decimal(0)
+        if abono_raw:
+            try:
+                abono = Decimal(abono_raw)
+                if abono < 0:
+                    raise ValueError
+            except (InvalidOperation, ValueError):
+                messages.error(request, "El abono ingresado no es válido.")
+                return redirect("ordenes_trabajo")
+
+        # Validación: abono no puede ser mayor que el total
+        if abono > total:
+            messages.error(request, "El abono no puede ser mayor que el total a pagar.")
             return redirect("ordenes_trabajo")
 
-        # Obtener o crear entidades relacionadas
+        # Obtener cliente
         try:
             cliente = Cliente.objects.get(id=cliente_id)
         except Cliente.DoesNotExist:
             messages.error(request, "Cliente no encontrado.")
             return redirect("ordenes_trabajo")
-        
+        except Exception as e:
+            messages.error(request, f"Ocurrió un error al obtener el cliente: {e}")
+            return redirect("ordenes_trabajo")
+
+        # Obtener marca
         try:
-            marca = Marca.objects.get(id=marca_nombre)
+            marca = Marca.objects.get(id=marca_id)
         except Marca.DoesNotExist:
             messages.error(request, "Marca no encontrada.")
             return redirect("ordenes_trabajo")
-        modelo, _ = Modelo.objects.get_or_create(nombre_modelo=modelo_nombre)
-        estado, _ = Estado.objects.get_or_create(tipo_estado="PENDIENTE")
+        except Exception as e:
+            messages.error(request, f"Ocurrió un error al obtener la marca: {e}")
+            return redirect("ordenes_trabajo")
+
+        # Obtener o crear modelo y estado
+        try:
+            modelo, _ = Modelo.objects.get_or_create(nombre_modelo=modelo_nombre)
+            estado, _ = Estado.objects.get_or_create(tipo_estado="PENDIENTE")
+        except Exception as e:
+            messages.error(request, f"Ocurrió un error al crear modelo o estado: {e}")
+            return redirect("ordenes_trabajo")
 
         # Usuario autenticado o default
         usuario = request.user if request.user.is_authenticated else User.objects.first()
 
-        Orden_de_Trabajo.objects.create(
-            cliente=cliente,
-            usuario=usuario,
-            estado=estado,
-            marca=marca,
-            modelo=modelo,
-            total_pagar=total,
-            abono=abono,
-            observaciones=observaciones,
-        )
+        # Crear la orden
+        try:
+            Orden_de_Trabajo.objects.create(
+                cliente=cliente,
+                usuario=usuario,
+                estado=estado,
+                marca=marca,
+                modelo=modelo,
+                total_pagar=total,
+                abono=abono,
+                observaciones=observaciones,
+            )
+            messages.success(request, "La órden fue creada correctamente.")
+        except Exception as e:
+            messages.error(request, f"Ocurrió un error al crear la orden: {e}")
+            return redirect("ordenes_trabajo")
 
-        messages.success(request, "La órden fue creada correctamente.")
         return redirect("ordenes_trabajo")
 
     return redirect("ordenes_trabajo")

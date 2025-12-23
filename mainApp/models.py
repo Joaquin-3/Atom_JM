@@ -1,9 +1,8 @@
 from django.db import models
 from django.utils.safestring import mark_safe
 from django.utils import timezone  
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
-
-
 # Create your models here.
 class Cliente(models.Model):
     nombre = models.CharField(max_length=100)
@@ -64,6 +63,7 @@ class Modelo(models.Model):
         verbose_name_plural = "Modelos"
 
 
+
 class Orden_de_Trabajo(models.Model):
     numero_control = models.AutoField(primary_key=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT)
@@ -80,9 +80,13 @@ class Orden_de_Trabajo(models.Model):
     def saldo(self):
         return self.total_pagar - (self.abono or 0)
 
+    def clean(self):
+        super().clean()
+        if self.abono and self.abono > self.total_pagar:
+            raise ValidationError({'abono': "El abono no puede ser mayor que el total a pagar."})
+
     def __str__(self):
         return f"Orden {self.numero_control} - {self.cliente.nombre}"
-    
     
     class Meta:
         ordering = ['-fecha']
