@@ -1,0 +1,257 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentación de Órdenes - Atom</title>
+
+    <!-- Bootstrap + iconos -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="d-flex" style="min-height: 100vh; font-family: 'Montserrat', sans-serif;">
+
+    <!-- SIDEBAR -->
+    <nav class="bg-dark text-white p-3 d-flex flex-column" style="width: 240px; min-height: 100vh;">
+        
+        <div class="text-center mb-4">
+            <i class="bi bi-person-circle fs-1 mb-1"></i>
+            <p class="mb-0">TEST<br><small class="text-secondary">(TEST)</small></p>
+        </div>
+
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a href="{% url 'inicio' %}" class="nav-link text-white rounded-1">
+                    <i class="bi bi-house-door me-2"></i> Inicio
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'clientes' %}" class="nav-link text-white rounded-1">
+                    <i class="bi bi-person me-2"></i> Clientes
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'ordenes_trabajo' %}" class="nav-link text-white rounded-1">
+                    <i class="bi bi-bell me-2"></i> Órdenes de Trabajo
+                </a>
+            </li>
+            <li class="nav-item">
+                <!-- ESTA PÁGINA -->
+                <a href="{% url 'documentacion' %}" class="nav-link active rounded-1" aria-current="page">
+                    <i class="bi bi-file-earmark-text me-2"></i> Documentación
+                </a>
+            </li>
+        </ul>
+
+        <hr class="border-secondary my-3">
+        
+        <ul class="nav nav-pills flex-column">
+            <li class="nav-item">
+                <a href="#" class="nav-link text-white rounded-1">
+                    <i class="bi bi-gear me-2"></i> Ajustes
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link text-white rounded-1">
+                    <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- CONTENIDO PRINCIPAL: HISTORIAL -->
+    <main class="flex-grow-1 p-4">
+
+        {% if messages %}
+            <div class="mb-3">
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- BUSCADOR + CHIPS + ORDEN POR FECHA -->
+        <section class="mb-4">
+
+            <!-- BUSCADOR -->
+            <div class="mb-3" style="max-width: 600px;">
+                <form method="GET" class="input-group">
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        placeholder="Buscar..." 
+                        aria-label="Buscador" 
+                        name="q"
+                        value="{{ q|default:'' }}"
+                    >
+                    <button class="btn btn-dark" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- CHIPS + ORDENAMIENTO -->
+            <div class="d-flex flex-wrap align-items-center gap-2">
+
+                <span class="fw-semibold me-1">Ordenar por:</span>
+
+                <!-- N° de órden / Dispositivo -->
+                <a href="?order=device&sort={{ sort|default:'desc' }}" 
+                class="badge rounded-pill px-3 py-2 {% if order == 'device' %}text-bg-primary{% else %}text-bg-dark{% endif %}">
+                    Dispositivo
+                </a>
+
+                <!-- Cliente -->
+                <a href="?order=cliente&sort={{ sort|default:'desc' }}" 
+                class="badge rounded-pill px-3 py-2 {% if order == 'cliente' %}text-bg-primary{% else %}text-bg-dark{% endif %}">
+                    Cliente
+                </a>
+
+                <!-- Marca -->
+                <a href="?order=marca&sort={{ sort|default:'desc' }}" 
+                class="badge rounded-pill px-3 py-2 {% if order == 'marca' %}text-bg-primary{% else %}text-bg-dark{% endif %}">
+                    Marca
+                </a>
+
+                <!-- Total -->
+                <a href="?order=total&sort={{ sort|default:'desc' }}" 
+                class="badge rounded-pill px-3 py-2 {% if order == 'total' %}text-bg-primary{% else %}text-bg-dark{% endif %}">
+                    Total
+                </a>
+
+                <!-- Fecha -->
+                <a href="?order=fecha&sort={{ sort|default:'desc' }}" 
+                class="badge rounded-pill px-3 py-2 {% if order == 'fecha' or not order %}text-bg-primary{% else %}text-bg-dark{% endif %}">
+                    Fecha
+                </a>
+
+                <span class="mx-2">|</span>
+
+                <span class="fw-semibold">Dirección :</span>
+
+                <!-- Asc / Desc: mantienen el campo actual -->
+                <a href="?order={{ order|default:'fecha' }}&sort=asc" 
+                class="btn btn-outline-dark btn-sm {% if sort == 'asc' %}active{% endif %}">
+                    Asc
+                </a>
+                <a href="?order={{ order|default:'fecha' }}&sort=desc" 
+                class="btn btn-outline-dark btn-sm {% if sort == 'desc' or not sort %}active{% endif %}">
+                    Desc
+                </a>
+
+            </div>
+
+
+        </section>
+
+        <!-- TABLA GRANDE (OCUPA TODO EL ANCHO) -->
+        <section class="row g-4 align-items-start">
+            <div class="col-12">
+                
+                <!-- Logo y título centrados sobre la tabla -->
+                <div class="text-center mb-3">
+                    <div class="d-inline-flex align-items-center flex-column mb-2">
+                        <div class="rounded-circle bg-dark d-flex align-items-center justify-content-center"
+                                style="width: 70px; height: 70px; overflow: hidden;">
+                            <img src="{% static 'images/Logo_ATOM.png' %}" alt="Logo Atom"
+                                    style="width: 60px; height: 60px; object-fit: contain;">
+                        </div>
+                    </div>
+                    <h2 class="mt-2 fw-semibold">Órdenes de Trabajo</h2>
+                </div>
+
+                <!-- TABLA DE ÓRDENES -->
+                <div class="card shadow-sm">
+                    <div class="card-body p-3">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm mb-0">
+                               <thead class="table-dark text-center align-middle">
+                                    <tr>
+                                        <th class="text-nowrap">N° de órden</th>
+                                        <th>Cliente</th>
+                                        <th>Marca</th>
+                                        <th>Modelo</th>
+                                        <th>Fecha</th>
+                                        <th>Observaciones</th>
+                                        <th>Total</th>
+                                        <th>Abono</th>
+                                        <th class="text-end">Saldo</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+                                    {% for orden in ordenes %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ orden.cliente.nombre }}</td>
+                                        <td>{{ orden.marca.nombre_marca }}</td>
+                                        <td>{{ orden.modelo.nombre_modelo }}</td>
+                                        <td>{{ orden.fecha|date:"d/m/Y" }}</td>
+                                        <td style="white-space: pre-line;">{{ orden.observaciones }}</td>
+
+                                        <td>${{ orden.total_pagar }}</td>
+
+                                        <td class="text-end">
+                                            {% if orden.abono %}
+                                                ${{ orden.abono|floatformat:2 }}
+                                            {% else %}
+                                                $0,00
+                                            {% endif %}
+                                        </td>
+
+                                        <td class="text-end">
+                                            ${{ orden.saldo|floatformat:2 }}
+                                        </td>
+
+                                        <td>{{ orden.estado.tipo_estado }}</td>
+                                        <td>
+                                            <a href="{% url 'editar_ordenes' orden.pk %}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                Editar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="11" class="text-center text-muted">
+                                            <i class="bi bi-inbox fs-1"></i>
+                                            <p class="mt-2 mb-0">No hay órdenes ingresadas aún.</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Paginación (mockup) -->
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="text-muted small">ver más...</span>
+                            
+                            <div class="d-flex align-items-center gap-1">
+                                <button class="btn btn-sm btn-outline-dark">&laquo;</button>
+                                <button class="btn btn-sm btn-outline-dark">&lsaquo;</button>
+                                <select class="form-select form-select-sm w-auto">
+                                    <option>Página 1</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline-dark">&rsaquo;</button>
+                                <button class="btn btn-sm btn-outline-dark">&raquo;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+</body>
+</html>

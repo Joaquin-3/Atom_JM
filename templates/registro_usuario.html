@@ -1,0 +1,110 @@
+{% load static %}{% spaceless %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atom - Crear Cuenta</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light d-flex flex-column justify-content-center align-items-center vh-100 position-relative" style="padding-top: 70px;">
+    
+
+    <nav class="navbar navbar-dark bg-dark fixed-top p-0">
+        <div class="container-fluid d-flex flex-column justify-content-center align-items-center py-2">
+            <a class="navbar-brand fw-bold fs-3 mb-0" style="font-family: 'Montserrat', sans-serif;" href="#">Atom</a>
+            <p class="text-white small mt-1 mb-2" style="font-family: 'Montserrat', sans-serif;">Especialistas en Tecnología</p>
+        </div>
+    </nav>
+
+
+    <div class="bg-dark rounded-4 p-5 text-center position-relative" style="max-width: 450px; width: 100%;">
+        
+
+        <div class="position-absolute top-0 start-50 translate-middle rounded-circle bg-dark d-flex justify-content-center align-items-center border border-2 border-light" style="width: 90px; height: 90px; margin-top: -45px;">
+            <img src="{% static 'images/Logo_ATOM.png' %}" alt="Atom Logo" class="img-fluid" style="width: 60px; filter: invert(1);">
+        </div>
+        
+        <h2 class="text-white mt-4 mb-4 fs-4 fw-normal" style="font-family: 'Montserrat', sans-serif;">
+            Crea tu cuenta
+        </h2>
+        
+        <form id="registerForm">
+            <div class="mb-3">
+                <input type="text" class="form-control bg-white border-0 p-3" id="fullName" placeholder="Nombre completo" required>
+            </div>
+
+            <div class="mb-3">
+                <input type="email" class="form-control bg-white border-0 p-3" id="email" placeholder="Correo electrónico" required>
+            </div>
+
+            <div class="mb-3">
+                <input type="password" class="form-control bg-white border-0 p-3" id="password" placeholder="Contraseña" required>
+            </div>
+
+            <div class="mb-3">
+                <input type="password" class="form-control bg-white border-0 p-3" id="confirmPassword" placeholder="Confirmar contraseña" required>
+            </div>
+
+            <button type="submit" class="btn btn-secondary w-100 p-3 fw-bold" style="font-family: 'Montserrat', sans-serif;">Registrarse</button>
+
+            <div class="mt-4 text-white small">
+                ¿Ya tienes cuenta?
+                <a href="{% url 'login' %}" class="text-primary fw-bold text-decoration-none" style="font-family: 'Montserrat', sans-serif;">Inicia sesión</a>
+            </div>
+        </form>
+
+
+        <div id="registerMessage" class="mt-3 text-white fw-semibold"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const registerForm = document.getElementById('registerForm');
+        const message = document.getElementById('registerMessage');
+
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            if (!name || !email || !password || !confirm) {
+                message.textContent = 'Completa todos los campos';
+                message.className = 'mt-3 text-warning fw-semibold';
+                return;
+            }
+
+            if (password !== confirm) {
+                message.textContent = 'Las contraseñas no coinciden';
+                message.className = 'mt-3 text-danger fw-semibold';
+                return;
+            }
+
+            if (localStorage.getItem(email)) {
+                message.textContent = 'Este correo ya está registrado';
+                message.className = 'mt-3 text-danger fw-semibold';
+                return;
+            }
+
+            const userData = { name, email, password };
+            localStorage.setItem(email, JSON.stringify(userData));
+
+            message.textContent = 'Cuenta creada con éxito 🎉';
+            message.className = 'mt-3 text-success fw-semibold';
+
+            // Redirección al login
+            setTimeout(() => {
+                window.location.href = '{% url "login" %}'; 
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
+{% endspaceless %}
