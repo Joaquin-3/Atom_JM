@@ -120,7 +120,6 @@
 
         <form method="post">
             {% csrf_token %}
-
             {{ form.as_p }}
 
             {% if form.errors %}
@@ -137,7 +136,54 @@
 
 </main>
 
+<!-- 🔔 MODAL DE MENSAJES CENTRADO -->
+{% if messages %}
+<div class="modal fade" id="messagesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+
+            {% for message in messages %}
+            <div class="modal-header bg-{{ message.tags }} text-white">
+                <h5 class="modal-title">
+                    {% if message.tags == 'success' %}✅ Éxito{% endif %}
+                    {% if message.tags == 'error' %}❌ Error{% endif %}
+                    {% if message.tags == 'warning' %}⚠️ Atención{% endif %}
+                    {% if message.tags == 'info' %}ℹ️ Información{% endif %}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body text-center fs-5">
+                {{ message }}
+            </div>
+            {% endfor %}
+
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Aceptar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('messagesModal')
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl, {
+            backdrop: 'static',
+            keyboard: true
+        })
+        modal.show()
+    }
+})
+</script>
+
 </body>
 </html>
-
