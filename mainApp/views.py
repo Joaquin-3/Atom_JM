@@ -1,15 +1,123 @@
-from django.shortcuts import render, redirect
-from .models import Cliente, Marca, Modelo, Estado, Orden_de_Trabajo
+from django.shortcuts import render, redirect,get_object_or_404
+from .models import Cliente, Marca, Modelo, Estado, Orden_de_Trabajo,Perfil
 from .forms import ClienteForm, EstadoForm
 from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login as auth_login
 from django.contrib.auth.models import User
 from decimal import Decimal, InvalidOperation
 from django.db.models import Q
-from django.shortcuts import render, redirect, get_object_or_404
 from django.utils.dateparse import parse_date
 from django.utils import timezone
+from django.db.models.deletion import ProtectedError
+
+
+#PARA USUARIOS 
+
+def es_admin(user):
+    return user.groups.filter(name="Administrador").exists()
+
+def es_tecnico(user):
+    return user.groups.filter(name="Tecnico").exists()
+
+@login_required
+def panel_admin(request):
+    print("USUARIO:", request.user.username)
+    print("GRUPOS:", request.user.groups.all())
+
+    if not es_admin(request.user):
+        messages.error(request, "Acceso denegado: solo administradores.")
+        return redirect('inicio')
+
+    return render(request, "admin_panel.html")
+
+
+from django.contrib.auth.models import User, Group
+
+
+CONTRASENA_TECNICO = "Tecnico123"  
+
+@login_required
+def crear_tecnico(request):
+    if not es_admin(request.user):
+        messages.error(request, "No tienes permisos para crear usuarios.")
+        return redirect("inicio")
+
+    if request.method == "POST":
+        username = request.POST.get("username")
+
+        if not username:
+            messages.error(request, "Debes ingresar un nombre de usuario.")
+            return redirect("crear_tecnico")
+
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "El usuario ya existe.")
+            return redirect("crear_tecnico")
+
+        user = User.objects.create_user(
+            username=username,
+            password=CONTRASENA_TECNICO
+        )
+
+        grupo_tecnico, _ = Group.objects.get_or_create(name="Tecnico")
+        user.groups.add(grupo_tecnico)
+
+        # 🔥 CREAR PERFIL Y FORZAR CAMBIO DE PASSWORD
+        Perfil.objects.create(
+            user=user,
+            debe_cambiar_password=True
+        )
+
+        messages.success(
+            request,
+            f"Técnico creado. Contraseña inicial: {CONTRASENA_TECNICO}"
+        )
+
+        return redirect("admin_panel")
+
+    return render(request, "crear_tecnico.html")
+
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import update_session_auth_hash
+from django.contrib import messages
+
+@login_required
+def cambiar_password(request):
+
+    # 🔒 Si NO es técnico, no entra aquí
+    if not es_tecnico(request.user):
+        return redirect("inicio")
+
+    # ✅ Si ya cambió la contraseña, no vuelve aquí
+    if request.user.last_login is not None:
+        return redirect("inicio")
+
+    if request.method == "POST":
+        password1 = request.POST.get("password1")
+        password2 = request.POST.get("password2")
+
+        if password1 != password2:
+            messages.error(request, "Las contraseñas no coinciden.")
+            return redirect("cambiar_password")
+
+        if len(password1) < 8:
+            messages.error(request, "La contraseña debe tener al menos 8 caracteres.")
+            return redirect("cambiar_password")
+
+        request.user.set_password(password1)
+        request.user.save()
+
+        # 🔑 Mantiene la sesión activa
+        update_session_auth_hash(request, request.user)
+
+        messages.success(request, "Contraseña actualizada correctamente.")
+        return redirect("inicio")
+
+    return render(request, "cambiar_password.html")
+
+
 
 
 
@@ -58,11 +166,83 @@ def validar_monto(valor_str, nombre_campo, request, obligatorio=True):
 def registro(req):
     return render(req, "registro.html")
 
-def inicio(req):
-    return render(req, "inicio.html")
 
-def login(req):
-    return render(req, "login.html")
+def obtener_perfil(user):
+    perfil, creado = Perfil.objects.get_or_create(user=user)
+    return perfil
+
+def login_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+
+        user = authenticate(request, username=username, password=password)
+
+        if user:
+            auth_login(request, user)
+
+            perfil = obtener_perfil(user)
+
+            if es_tecnico(user) and perfil.debe_cambiar_password:
+                return redirect("cambiar_password")
+
+            return redirect("inicio")
+
+        messages.error(request, "Usuario o contraseña incorrectos")
+
+    return render(request, "login.html")
+
+
+
+@login_required
+def cambiar_password(request):
+
+    if not es_tecnico(request.user):
+        return redirect("inicio")
+
+    perfil = obtener_perfil(request.user)
+
+    # 🔒 Si ya cambió contraseña → fuera
+    if not perfil.debe_cambiar_password:
+        return redirect("inicio")
+
+    if request.method == "POST":
+        password1 = request.POST.get("password1")
+        password2 = request.POST.get("password2")
+
+        if password1 != password2:
+            messages.error(request, "Las contraseñas no coinciden.")
+            return redirect("cambiar_password")
+
+        if len(password1) < 8:
+            messages.error(request, "Mínimo 8 caracteres.")
+            return redirect("cambiar_password")
+
+        request.user.set_password(password1)
+        request.user.save()
+
+        # 🔥 MARCAR COMO COMPLETADO
+        perfil.debe_cambiar_password = False
+        perfil.save()
+
+        update_session_auth_hash(request, request.user)
+
+        messages.success(request, "Contraseña actualizada.")
+        return redirect("inicio")
+
+    return render(request, "cambiar_password.html")
+
+
+
+@login_required
+def inicio(request):
+
+    if es_tecnico(request.user) and request.user.last_login is None:
+        return redirect("cambiar_password")
+
+    return render(request, "inicio.html")
+
+
 
 def reg_usuario(req):
     return render(req, "registro_usuario.html")
@@ -90,9 +270,8 @@ def clientes(request):
 
     return render(request, 'clientes.html', {
         'clientes': clientes,
-        'query': query,
-        'active_page': 'clientes',
-        'form': form  
+        'form': form,
+        'es_tecnico': es_tecnico(request.user),   # ✅ AQUÍ
     })
 
 
@@ -119,18 +298,28 @@ def cliente_editar(request, id):
     })
 
 
+@login_required
 def cliente_eliminar(request, id):
     cliente = get_object_or_404(Cliente, id=id)
 
-    if request.method == 'POST':
-        cliente.delete()
+    # Solo admins pueden entrar a esta vista
+    if not es_admin(request.user):
+        messages.error(request, "No tienes permisos para eliminar clientes.")
         return redirect('clientes')
 
-    return render(request, 'confirmar_eliminacion.html', {
-        'cliente': cliente
-    })
+    if request.method == 'POST':
+        try:
+            cliente.delete()
+            messages.success(request, "Cliente eliminado correctamente.")
+        except ProtectedError:
+            messages.error(
+                request,
+                "No se puede eliminar el cliente porque tiene órdenes de trabajo asociadas."
+            )
+        return redirect('clientes')
 
-from django.db.models import Q  # ya lo tienes importado 👍
+    return render(request, 'confirmar_eliminacion.html', {'cliente': cliente})
+
 
 
 

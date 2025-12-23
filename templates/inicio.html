@@ -92,6 +92,10 @@
                             Cliente
                         </button>
                     </form>
+                    {% if request.user.groups.all.0.name == "Administrador" %}
+                        <a href="{% url 'admin_panel' %}">Panel Admin</a>
+                    {% endif %}
+
                     
                 </div>
             </div>
